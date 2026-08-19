@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Kas RT</title>
+    <!-- Tailwind CSS untuk Styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js untuk Grafik -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- PapaParse untuk membaca file CSV Google Sheets -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- FontAwesome untuk Ikon -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800" id="body-container">
+
+    <!-- Navbar -->
+    <nav class="bg-blue-600 text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <i class="fas fa-wallet text-2xl mr-3"></i>
+                    <span class="font-bold text-xl tracking-wider">Kas Warga Pondok Selaras Asri</span>
+                </div>
+                <div class="text-sm font-light hidden md:block">
+                    Transparansi Keuangan Terjaga
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- Saldo Card -->
+            <div class="bg-white rounded-xl shadow p-6 border-l-4 border-blue-500 flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 uppercase font-semibold mb-1">Saldo Saat Ini</p>
+                    <h3 class="text-3xl font-bold text-gray-800" id="saldo-text">Rp 0</h3>
+                </div>
+                <div class="bg-blue-100 p-3 rounded-full">
+                    <i class="fas fa-money-bill-wave text-blue-500 text-xl"></i>
+                </div>
+            </div>
+            
+            <!-- Pemasukan Card -->
+            <div class="bg-white rounded-xl shadow p-6 border-l-4 border-green-500 flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 uppercase font-semibold mb-1">Total Pemasukan</p>
+                    <h3 class="text-2xl font-bold text-green-600" id="pemasukan-text">Rp 0</h3>
+                </div>
+                <div class="bg-green-100 p-3 rounded-full">
+                    <i class="fas fa-arrow-down text-green-500 text-xl"></i>
+                </div>
+            </div>
+
+            <!-- Pengeluaran Card -->
+            <div class="bg-white rounded-xl shadow p-6 border-l-4 border-red-500 flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 uppercase font-semibold mb-1">Total Pengeluaran</p>
+                    <h3 class="text-2xl font-bold text-red-600" id="pengeluaran-text">Rp 0</h3>
+                </div>
+                <div class="bg-red-100 p-3 rounded-full">
+                    <i class="fas fa-arrow-up text-red-500 text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart Section -->
+        <div class="bg-white rounded-xl shadow p-6 mb-8">
+            <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Grafik Arus Kas (Per Tanggal)</h3>
+            <div class="relative h-64 md:h-80 w-full">
+                <canvas id="arusKasChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Matrix Pembayaran Section -->
+        <div class="bg-white rounded-xl shadow p-6 mb-8">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b pb-4 gap-3">
+                <div class="flex items-center gap-3">
+                    <h3 class="text-lg font-bold text-gray-800">Status Pembayaran Kas Warga</h3>
+                    <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">Tahun Ini</span>
+                </div>
+                <!-- Toggle Penyortiran -->
+                <select id="sort-select" onchange="renderMatrixPembayaran()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2">
+                    <option value="blok">Urutkan: Blok Rumah</option>
+                    <option value="nama">Urutkan: Nama Warga</option>
+                </select>
+            </div>
+            <p class="text-sm text-gray-500 mb-4">Mendeteksi otomatis dari kolom <strong>Nama</strong>, <strong>Blok</strong>, dan <strong>Bulan</strong> di Spreadsheet.</p>
+            
+            <div class="overflow-x-auto relative">
+                <table class="min-w-full w-full table-auto text-left border-collapse">
+                    <thead>
+                        <tr class="bg-blue-50 text-gray-600 uppercase text-xs leading-normal border-b-2 border-blue-200">
+                            <th class="py-3 px-4 font-bold sticky left-0 bg-blue-50 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Blok</th>
+                            <th class="py-3 px-4 font-bold">Nama Warga</th>
+                            <th class="py-3 px-2 text-center">Jan</th>
+                            <th class="py-3 px-2 text-center">Feb</th>
+                            <th class="py-3 px-2 text-center">Mar</th>
+                            <th class="py-3 px-2 text-center">Apr</th>
+                            <th class="py-3 px-2 text-center">Mei</th>
+                            <th class="py-3 px-2 text-center">Jun</th>
+                            <th class="py-3 px-2 text-center">Jul</th>
+                            <th class="py-3 px-2 text-center">Ags</th>
+                            <th class="py-3 px-2 text-center">Sep</th>
+                            <th class="py-3 px-2 text-center">Okt</th>
+                            <th class="py-3 px-2 text-center">Nov</th>
+                            <th class="py-3 px-2 text-center">Des</th>
+                        </tr>
+                    </thead>
+                    <tbody id="matrix-body" class="text-gray-700 text-sm font-light">
+                        <tr><td colspan="13" class="text-center py-4">Memuat data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Table Section -->
+        <div class="bg-white rounded-xl shadow p-6">
+            <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Riwayat Transaksi Terbaru</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full w-full table-auto text-left">
+                    <thead>
+                        <tr class="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
+                            <th class="py-3 px-6 rounded-tl-lg">Tanggal</th>
+                            <th class="py-3 px-6">Keterangan</th>
+                            <th class="py-3 px-6 text-center">Kategori</th>
+                            <th class="py-3 px-6 text-right">Nominal</th>
+                            <th class="py-3 px-6 text-center rounded-tr-lg">Lampiran</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body" class="text-gray-700 text-sm font-light">
+                        <!-- Data akan di-inject oleh JavaScript -->
+                        <tr>
+                            <td colspan="4" class="text-center py-4">Memuat data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <footer class="text-center py-6 text-gray-500 text-sm">
+        <p>&copy; 2026 Pengurus Pondok Selaras Asri. Dibuat dengan sistem terotomatisasi.</p>
+    </footer>
+
+    <script>
+        // =========================================================================
+        // KONFIGURASI GOOGLE SHEETS
+        // =========================================================================
+        // 1. Di Google Sheets, buka File > Bagikan > Publikasikan ke web
+        // 2. Pilih "Sheet1" dan format "Nilai yang dipisahkan koma (.csv)"
+        // 3. Paste link-nya di dalam tanda kutip di bawah ini.
+        // Contoh: "https://docs.google.com/spreadsheets/d/e/2PACX-1v.../pub?gid=0&single=true&output=csv"
+        
+        const GOOGLE_SHEETS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTdF4Mxui4mkkFVmad9uLKdm9ix8A0WYX9UxQPq2ECXMCiH-2mPtqaFPUT4BMWUgig3KX_Yj0O1tJHg/pub?gid=0&single=true&output=csv"; 
+
+        // Data dummy ini hanya akan muncul jika GOOGLE_SHEETS_CSV_URL kosong atau error
+        // Kolom harus: Tanggal, Nama, Blok, Bulan, Keterangan, Kategori, Nominal, Lampiran
+        const DUMMY_DATA = `Tanggal,Nama,Blok,Bulan,Keterangan,Kategori,Nominal,Lampiran
+01/07/2026,-,-,-,Saldo Awal Tahun,Pemasukan,1500000,
+05/07/2026,Bapak Budi,C10,Juli,Budi bayar kas Juli,Pemasukan,50000,
+10/07/2026,-,-,-,Perbaikan lampu jalan Blok A,Pengeluaran,150000,https://placehold.co/600x400/eeeeee/4b5563?text=Nota+Lampu.jpg
+15/07/2026,Bapak Andi,A02,Juli,Andi bayar kas Juli,Pemasukan,50000,
+01/08/2026,-,-,-,Konsumsi Kerja Bakti,Pengeluaran,200000,https://placehold.co/600x400/eeeeee/4b5563?text=Kuitansi+Makan.png
+05/08/2026,Ibu Siti,B05,Agustus,Siti bayar kas Agustus,Pemasukan,50000,
+07/08/2026,Bapak Budi,C10,Agustus,Budi bayar kas Agustus,Pemasukan,50000,
+12/08/2026,Bapak Andi,A02,Agustus,Andi bayar kas Agustus,Pemasukan,50000,`;
+
+        let myChart = null;
+        let globalDataMatrix = []; // Menyimpan data matrix untuk disortir
+
+        // Memuat data saat halaman pertama kali dibuka
+        window.onload = loadData;
+
+        async function loadData() {
+            let rawData = DUMMY_DATA;
+            
+            if(GOOGLE_SHEETS_CSV_URL !== "") {
+                try {
+                    const response = await fetch(GOOGLE_SHEETS_CSV_URL);
+                    rawData = await response.text();
+                } catch (e) {
+                    console.error("Gagal memuat data dari Spreadsheet. Menggunakan data dummy.", e);
+                }
+            }
+
+            // Parsing CSV menjadi JSON menggunakan PapaParse
+            Papa.parse(rawData, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    processData(results.data);
+                }
+            });
+        }
+
+        function processData(data) {
+            let totalPemasukan = 0;
+            let totalPengeluaran = 0;
+            const tableBody = document.getElementById('table-body');
+            tableBody.innerHTML = ''; // Bersihkan loading text
+
+            const chartLabels = [];
+            const chartPemasukan = [];
+            const chartPengeluaran = [];
+            const aggregated = {};
+            globalDataMatrix = []; // Reset matrix data
+
+            // Proses per baris data
+            data.forEach(row => {
+                const nominal = parseInt(row.Nominal) || 0;
+                const kategori = (row.Kategori || "").trim();
+                const lampiran = (row.Lampiran || "").trim();
+                const isPemasukan = kategori.toLowerCase() === 'pemasukan';
+                
+                if (isPemasukan) {
+                    totalPemasukan += nominal;
+                } else {
+                    totalPengeluaran += nominal;
+                }
+
+                // Render tombol lampiran jika ada link
+                let lampiranHTML = '-';
+                if(lampiran !== "") {
+                    lampiranHTML = `<a href="${lampiran}" target="_blank" class="text-blue-500 hover:text-blue-700" title="Lihat Lampiran">
+                        <i class="fas fa-image text-lg"></i>
+                    </a>`;
+                }
+
+                // Masukkan ke Tabel HTML Riwayat Transaksi
+                const tr = document.createElement('tr');
+                tr.className = "border-b border-gray-200 hover:bg-gray-50 transition duration-150";
+                tr.innerHTML = `
+                    <td class="py-4 px-6 text-left font-medium whitespace-nowrap">${row.Tanggal || '-'}</td>
+                    <td class="py-4 px-6 text-left">${row.Keterangan || '-'}</td>
+                    <td class="py-4 px-6 text-center">
+                        <span class="${isPemasukan ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'} py-1 px-3 rounded-full text-xs font-bold uppercase tracking-wider">
+                            ${kategori}
+                        </span>
+                    </td>
+                    <td class="py-4 px-6 text-right font-semibold">Rp ${nominal.toLocaleString('id-ID')}</td>
+                    <td class="py-4 px-6 text-center">${lampiranHTML}</td>
+                `;
+                tableBody.appendChild(tr);
+
+                // Agregasi untuk Grafik berdasarkan Tanggal
+                const tgl = row.Tanggal || 'Unknown';
+                if(!aggregated[tgl]) aggregated[tgl] = { in: 0, out: 0 };
+                if(isPemasukan) aggregated[tgl].in += nominal;
+                else aggregated[tgl].out += nominal;
+
+                // Ekstraksi untuk Matrix Pembayaran
+                const namaWarga = row.Nama ? row.Nama.trim() : null;
+                const blokRumah = row.Blok ? row.Blok.trim() : '-';
+                const bulanBayar = row.Bulan ? row.Bulan.trim() : null;
+
+                // Jika baris adalah pemasukan, dan ada Nama serta Bulan-nya
+                if (isPemasukan && namaWarga && namaWarga !== '-' && bulanBayar && bulanBayar !== '-') {
+                    const wargaId = `${namaWarga}_${blokRumah}`;
+                    let wargaIndex = globalDataMatrix.findIndex(w => w.id === wargaId);
+                    
+                    if (wargaIndex === -1) {
+                        globalDataMatrix.push({
+                            id: wargaId,
+                            nama: namaWarga,
+                            blok: blokRumah,
+                            bulan: {}
+                        });
+                        wargaIndex = globalDataMatrix.length - 1;
+                    }
+                    // Tandai bulan sudah dibayar
+                    globalDataMatrix[wargaIndex].bulan[bulanBayar.toLowerCase()] = true; 
+                }
+            });
+
+            // Update Angka di Kartu Atas
+            const saldo = totalPemasukan - totalPengeluaran;
+            document.getElementById('saldo-text').innerText = 'Rp ' + saldo.toLocaleString('id-ID');
+            document.getElementById('pemasukan-text').innerText = 'Rp ' + totalPemasukan.toLocaleString('id-ID');
+            document.getElementById('pengeluaran-text').innerText = 'Rp ' + totalPengeluaran.toLocaleString('id-ID');
+
+            // Siapkan Data untuk Chart.js
+            for(let date in aggregated) {
+                chartLabels.push(date);
+                chartPemasukan.push(aggregated[date].in);
+                chartPengeluaran.push(aggregated[date].out);
+            }
+
+            renderChart(chartLabels, chartPemasukan, chartPengeluaran);
+            renderMatrixPembayaran(); // Render tanpa parameter, menggunakan data global
+        }
+
+        function renderMatrixPembayaran() {
+            const matrixBody = document.getElementById('matrix-body');
+            matrixBody.innerHTML = '';
+            
+            const sortBy = document.getElementById('sort-select').value;
+            const daftarBulan = ['januari', 'februari', 'maret', 'april', 'mei', 'juni', 'juli', 'agustus', 'september', 'oktober', 'november', 'desember'];
+
+            // Jika belum ada data
+            if (globalDataMatrix.length === 0) {
+                matrixBody.innerHTML = `<tr><td colspan="14" class="text-center py-6 text-gray-500 italic bg-gray-50">Belum ada rekap data warga.</td></tr>`;
+                return;
+            }
+
+            // Menyortir Array globalDataMatrix
+            let sortedData = [...globalDataMatrix]; // Copy array
+            if (sortBy === 'blok') {
+                // Natural sort untuk blok (A2 sebelum A10)
+                sortedData.sort((a, b) => a.blok.localeCompare(b.blok, undefined, {numeric: true, sensitivity: 'base'}));
+            } else if (sortBy === 'nama') {
+                sortedData.sort((a, b) => a.nama.localeCompare(b.nama));
+            }
+
+            // Render Baris per Warga
+            sortedData.forEach(warga => {
+                const tr = document.createElement('tr');
+                tr.className = "group border-b border-gray-200 hover:bg-gray-50 transition duration-150";
+                
+                // Kolom Blok (Sticky) & Nama
+                let rowHTML = `
+                    <td class="py-3 px-4 font-bold text-gray-800 whitespace-nowrap sticky left-0 bg-white group-hover:bg-gray-50 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] transition duration-150">${warga.blok}</td>
+                    <td class="py-3 px-4 font-medium whitespace-nowrap">${warga.nama}</td>
+                `;
+                
+                // Ceklis Status per Bulan
+                daftarBulan.forEach(bulan => {
+                    const sudahBayar = warga.bulan[bulan];
+                    if (sudahBayar) {
+                        rowHTML += `<td class="py-3 px-2 text-center"><i class="fas fa-check-circle text-green-500 text-lg shadow-sm rounded-full"></i></td>`;
+                    } else {
+                        rowHTML += `<td class="py-3 px-2 text-center"><span class="text-gray-300 font-bold">-</span></td>`;
+                    }
+                });
+
+                tr.innerHTML = rowHTML;
+                matrixBody.appendChild(tr);
+            });
+        }
+
+        function renderChart(labels, inData, outData) {
+            const ctx = document.getElementById('arusKasChart').getContext('2d');
+            if(myChart) myChart.destroy(); // Hancurkan chart lama jika ada
+            
+            myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Pemasukan',
+                            data: inData,
+                            backgroundColor: '#22c55e', // Hijau Tailwind
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Pengeluaran',
+                            data: outData,
+                            backgroundColor: '#ef4444', // Merah Tailwind
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'Rp ' + value.toLocaleString('id-ID');
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+    </script>
+</body>
+</html>
