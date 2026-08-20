@@ -180,51 +180,46 @@
     </footer>
 
     <script>
-        const GOOGLE_SHEETS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTdF4Mxui4mkkFVmad9uLKdm9ix8A0WYX9UxQPq2ECXMCiH-2mPtqaFPUT4BMWUgig3KX_Yj0O1tJHg/pub?gid=0&single=true&output=csv"; 
-
-        const DUMMY_DATA = `Tanggal,Nama,Blok,Bulan,Keterangan,Kategori,Nominal,Lampiran
-01/07/2026,-,-,-,Saldo Awal Tahun,Pemasukan,1500000,
-05/07/2026,Bapak Budi,C10,Juli,Budi bayar kas Juli,Pemasukan,50000,
-10/07/2026,-,-,-,Perbaikan lampu jalan Blok A,Pengeluaran,150000,https://placehold.co/600x400/eeeeee/4b5563?text=Nota+Lampu.jpg
-15/07/2026,Bapak Andi,A02,Juli,Andi bayar kas Juli,Pemasukan,50000,
-01/08/2026,-,-,-,Konsumsi Kerja Bakti,Pengeluaran,200000,https://placehold.co/600x400/eeeeee/4b5563?text=Kuitansi+Makan.png
-05/08/2026,Ibu Siti,B05,Agustus,Siti bayar kas Agustus,Pemasukan,50000,
-07/08/2026,Bapak Budi,C10,Agustus,Budi bayar kas Agustus,Pemasukan,50000,
-12/08/2026,Bapak Andi,A02,Agustus,Andi bayar kas Agustus,Pemasukan,50000,
-12/08/2026,Bapak Budi,C10,Agustus,Budi bayar kas Agustus,Pemasukan,50000,
-12/08/2026,Ibu Siti,B05,Agustus,Siti bayar kas Agustus,Pemasukan,50000,`;
+        const TRANSACTION_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTdF4Mxui4mkkFVmad9uLKdm9ix8A0WYX9UxQPq2ECXMCiH-2mPtqaFPUT4BMWUgig3KX_Yj0O1tJHg/pub?gid=0&single=true&output=csv"; 
+        const MASTER_DATA_CSV_URL = ""; // Opsional: Kosongkan jika warga diambil langsung dari transaksi
 
         let myChart = null;
         let globalRawTransactions = [];
+        let globalMasterData = [];
         const DEFAULT_ROW_LIMIT = 10;
         let showAllRows = false;
 
-        window.onload = loadData;
+        window.onload = loadAllData;
 
-        function loadData() {
-            if (!GOOGLE_SHEETS_CSV_URL || GOOGLE_SHEETS_CSV_URL.trim() === "") {
-                console.warn("URL CSV belum diisi. Menggunakan Data Dummy.");
-                processData(parseCSV(DUMMY_DATA));
+        function loadAllData() {
+            if (!TRANSACTION_CSV_URL) {
+                console.warn("URL CSV Transaksi kosong.");
                 return;
             }
 
-            fetch(GOOGLE_SHEETS_CSV_URL)
-                .then(response => {
-                    if (!response.ok) throw new Error("Gagal mengunduh CSV");
-                    return response.text();
-                })
+            // Ambil data transaksi utama
+            fetch(TRANSACTION_CSV_URL)
+                .then(res => res.text())
                 .then(text => {
-                    const data = parseCSV(text);
-                    if (data && data.length > 0) {
-                        processData(data);
+                    globalRawTransactions = parseCSV(text);
+                    
+                    // Jika MasterData URL diisi, ambil juga, jika tidak langsung proses
+                    if (MASTER_DATA_CSV_URL && MASTER_DATA_CSV_URL.trim() !== "") {
+                        fetch(MASTER_DATA_CSV_URL)
+                            .then(res => res.text())
+                            .then(masterText => {
+                                globalMasterData = parseCSV(masterText);
+                                processData();
+                            })
+                            .catch(err => {
+                                console.warn("Gagal load MasterData, menggunakan data transaksi.", err);
+                                processData();
+                            });
                     } else {
-                        processData(parseCSV(DUMMY_DATA));
+                        processData();
                     }
                 })
-                .catch(err => {
-                    console.error("Error loading CSV:", err);
-                    processData(parseCSV(DUMMY_DATA));
-                });
+                .catch(err => console.error("Error loading CSV:", err));
         }
 
         function parseCSV(text) {
@@ -249,8 +244,8 @@
             return result;
         }
 
-        function processData(data) {
-            globalRawTransactions = data;
+        function processData() {
+            const data = globalRawTransactions;
 
             let totalPemasukan = 0;
             let totalPengeluaran = 0;
@@ -269,18 +264,38 @@
                 'Nov': { in: 0, out: 0 },
                 'Des': { in: 0, out: 0 }
             };
+            const listBulan = Object.keys(rekapBulan);
+            const mapBulanNama = { 
+                'januari':0, 'februari':1, 'maret':2, 'april':3, 'mei':4, 'juni':5, 
+                'juli':6, 'agustus':7, 'september':8, 'oktober':9, 'november':10, 'desember':11,
+                'jan':0, 'feb':1, 'mar':2, 'apr':3, 'jun':5, 'jul':6, 'agu':7, 'sep':8, 'okt':9, 'nov':10, 'des':11
+            };
 
             data.forEach(row => {
                 const nominal = parseInt(row.Nominal) || 0;
                 const kategori = (row.Kategori || '').toLowerCase().trim();
-                const bulan = (row.Bulan || '').trim();
+                const tanggal = (row.Tanggal || '').trim();
+                const namaBulan = (row.Bulan || '').toLowerCase().trim();
+
+                // Logika Pintar Hybrid Grafik:
+                // Jika kolom 'Bulan' terisi nama bulan (misal iuran juli bayar agustus), alokasikan ke bulan tersebut.
+                // Jika kolom 'Bulan' kosong / '-', fallback ekstrak dari Tanggal fisik.
+                let idxBulan = -1;
+                if (mapBulanNama[namaBulan] !== undefined) {
+                    idxBulan = mapBulanNama[namaBulan];
+                } else if (tanggal.includes('/')) {
+                    const parts = tanggal.split('/');
+                    if (parts.length >= 2) idxBulan = parseInt(parts[1], 10) - 1;
+                }
+
+                const kunciBulan = (idxBulan >= 0 && idxBulan <= 11) ? listBulan[idxBulan] : null;
 
                 if (kategori === 'pemasukan') {
                     totalPemasukan += nominal;
-                    if (rekapBulan[bulan]) rekapBulan[bulan].in += nominal;
+                    if (kunciBulan) rekapBulan[kunciBulan].in += nominal;
                 } else if (kategori === 'pengeluaran') {
                     totalPengeluaran += nominal;
-                    if (rekapBulan[bulan]) rekapBulan[bulan].out += nominal;
+                    if (kunciBulan) rekapBulan[kunciBulan].out += nominal;
                 }
             });
 
@@ -355,16 +370,30 @@
             matrixBody.innerHTML = '';
 
             const daftarBulan = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Okt', 'Nov', 'Des'];
-
             const dataWarga = {};
+
+            // Masukkan data warga dari MasterData jika ada, atau kumpulkan dari transaksi
+            if (globalMasterData.length > 0) {
+                globalMasterData.forEach(m => {
+                    const nama = (m.Nama || '').trim();
+                    const blok = (m.Blok || '').trim();
+                    if (nama && blok) {
+                        dataWarga[`${blok}-${nama}`] = { nama, blok, bulanLunas: {} };
+                    }
+                });
+            }
 
             globalRawTransactions.forEach(row => {
                 const nama = (row.Nama || '').trim();
                 const blok = (row.Blok || '').trim();
                 const bulan = (row.Bulan || '').trim();
                 const kategori = (row.Kategori || '').toLowerCase().trim();
+                const keterangan = (row.Keterangan || '').toLowerCase().trim();
 
-                if (nama && nama !== '-' && kategori === 'pemasukan') {
+                // Deteksi apakah ini iuran kas (berdasarkan kategori pemasukan & ada kata kas/iuran)
+                const isIuranKas = kategori === 'pemasukan' && (keterangan.includes('kas') || keterangan.includes('iuran'));
+
+                if (nama && nama !== '-' && isIuranKas) {
                     const key = `${blok}-${nama}`;
                     if (!dataWarga[key]) {
                         dataWarga[key] = { nama, blok, bulanLunas: {} };
