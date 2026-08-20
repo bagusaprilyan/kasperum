@@ -197,13 +197,11 @@
                 return;
             }
 
-            // Ambil data transaksi utama
             fetch(TRANSACTION_CSV_URL)
                 .then(res => res.text())
                 .then(text => {
                     globalRawTransactions = parseCSV(text);
                     
-                    // Jika MasterData URL diisi, ambil juga, jika tidak langsung proses
                     if (MASTER_DATA_CSV_URL && MASTER_DATA_CSV_URL.trim() !== "") {
                         fetch(MASTER_DATA_CSV_URL)
                             .then(res => res.text())
@@ -244,6 +242,24 @@
             return result;
         }
 
+        function normalizeBulan(bStr) {
+            if (!bStr) return null;
+            const b = bStr.toLowerCase().trim();
+            if (b.includes('jan')) return 'Januari';
+            if (b.includes('feb')) return 'Februari';
+            if (b.includes('mar')) return 'Maret';
+            if (b.includes('apr')) return 'April';
+            if (b.includes('mei') || b.includes('may')) return 'Mei';
+            if (b.includes('jun')) return 'Juni';
+            if (b.includes('jul')) return 'Juli';
+            if (b.includes('agu') || b.includes('ags')) return 'Agustus';
+            if (b.includes('sep')) return 'September';
+            if (b.includes('okt')) return 'Okt';
+            if (b.includes('nov')) return 'Nov';
+            if (b.includes('des') || b.includes('dec')) return 'Des';
+            return null;
+        }
+
         function processData() {
             const data = globalRawTransactions;
 
@@ -265,24 +281,18 @@
                 'Des': { in: 0, out: 0 }
             };
             const listBulan = Object.keys(rekapBulan);
-            const mapBulanNama = { 
-                'januari':0, 'februari':1, 'maret':2, 'april':3, 'mei':4, 'juni':5, 
-                'juli':6, 'agustus':7, 'september':8, 'oktober':9, 'november':10, 'desember':11,
-                'jan':0, 'feb':1, 'mar':2, 'apr':3, 'jun':5, 'jul':6, 'agu':7, 'sep':8, 'okt':9, 'nov':10, 'des':11
-            };
 
             data.forEach(row => {
                 const nominal = parseInt(row.Nominal) || 0;
                 const kategori = (row.Kategori || '').toLowerCase().trim();
                 const tanggal = (row.Tanggal || '').trim();
-                const namaBulan = (row.Bulan || '').toLowerCase().trim();
+                const namaBulanRaw = (row.Bulan || '').trim();
 
-                // Logika Pintar Hybrid Grafik:
-                // Jika kolom 'Bulan' terisi nama bulan (misal iuran juli bayar agustus), alokasikan ke bulan tersebut.
-                // Jika kolom 'Bulan' kosong / '-', fallback ekstrak dari Tanggal fisik.
+                // Deteksi alokasi bulan untuk grafik (Hybrid: Utamakan Kolom Bulan, fallback ke Tanggal fisik)
                 let idxBulan = -1;
-                if (mapBulanNama[namaBulan] !== undefined) {
-                    idxBulan = mapBulanNama[namaBulan];
+                const normBulan = normalizeBulan(namaBulanRaw);
+                if (normBulan) {
+                    idxBulan = listBulan.indexOf(normBulan);
                 } else if (tanggal.includes('/')) {
                     const parts = tanggal.split('/');
                     if (parts.length >= 2) idxBulan = parseInt(parts[1], 10) - 1;
@@ -372,7 +382,6 @@
             const daftarBulan = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Okt', 'Nov', 'Des'];
             const dataWarga = {};
 
-            // Masukkan data warga dari MasterData jika ada, atau kumpulkan dari transaksi
             if (globalMasterData.length > 0) {
                 globalMasterData.forEach(m => {
                     const nama = (m.Nama || '').trim();
@@ -386,20 +395,31 @@
             globalRawTransactions.forEach(row => {
                 const nama = (row.Nama || '').trim();
                 const blok = (row.Blok || '').trim();
-                const bulan = (row.Bulan || '').trim();
+                let bulanRaw = (row.Bulan || '').trim();
                 const kategori = (row.Kategori || '').toLowerCase().trim();
-                const keterangan = (row.Keterangan || '').toLowerCase().trim();
+                const tanggal = (row.Tanggal || '').trim();
 
-                // Deteksi apakah ini iuran kas (berdasarkan kategori pemasukan & ada kata kas/iuran)
-                const isIuranKas = kategori === 'pemasukan' && (keterangan.includes('kas') || keterangan.includes('iuran'));
+                // Jika kolom bulan kosong di spreadsheet, ambil dari tanggal fisik
+                if (!bulanRaw && tanggal.includes('/')) {
+                    const parts = tanggal.split('/');
+                    if (parts.length >= 2) {
+                        const mIdx = parseInt(parts[1], 10) - 1;
+                        if (mIdx >= 0 && mIdx < 12) {
+                            bulanRaw = daftarBulan[mIdx];
+                        }
+                    }
+                }
 
-                if (nama && nama !== '-' && isIuranKas) {
+                const bulanNorm = normalizeBulan(bulanRaw);
+                const isPemasukan = kategori === 'pemasukan';
+
+                if (nama && nama !== '-' && isPemasukan) {
                     const key = `${blok}-${nama}`;
                     if (!dataWarga[key]) {
                         dataWarga[key] = { nama, blok, bulanLunas: {} };
                     }
-                    if (bulan) {
-                        dataWarga[key].bulanLunas[bulan] = true;
+                    if (bulanNorm) {
+                        dataWarga[key].bulanLunas[bulanNorm] = true;
                     }
                 }
             });
