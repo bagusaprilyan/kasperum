@@ -288,7 +288,7 @@
                 const tanggal = (row.Tanggal || '').trim();
                 const namaBulanRaw = (row.Bulan || '').trim();
 
-                // Grafik menggunakan tanggal fisik transaksi agar akurat 100% dengan total uang
+                // Grafik menggunakan alokasi bulan (jika ada di kolom Bulan) atau tanggal fisik
                 let idxBulan = -1;
                 const normBulan = normalizeBulan(namaBulanRaw);
                 if (normBulan) {
@@ -431,7 +431,8 @@
 
                 const bulanNorm = normalizeBulan(bulanRaw);
 
-                if (nama && nama !== '-') {
+                const isNamaValid = nama && nama !== '-' && !nama.toLowerCase().includes('tidak ditemukan');
+                if (isNamaValid) {
                     const key = `${blok}-${nama}`;
                     if (!dataWarga[key]) {
                         dataWarga[key] = { nama, blok, bulanLunas: {} };
@@ -583,6 +584,11 @@
                         const lampiran = (row.Lampiran || "").trim();
                         const isPemasukan = kategori.toLowerCase() === 'pemasukan';
 
+                        const namaVal = (row.Nama || '').trim();
+                        const blokVal = (row.Blok || '').trim();
+                        const isNamaValid = namaVal && namaVal !== '-' && !namaVal.toLowerCase().includes('tidak ditemukan');
+                        const namaBlokHTML = isNamaValid ? `<span class="text-xs text-gray-500 font-medium">(${namaVal} ${blokVal && blokVal !== '-' ? blokVal : ''})</span>` : '';
+
                         let lampiranHTML = '-';
                         if (lampiran !== "") {
                             lampiranHTML = `<a href="${lampiran}" target="_blank" class="text-blue-500 hover:text-blue-700" title="Lihat Lampiran">
@@ -594,7 +600,7 @@
                         childTr.className = `${groupId} ${autoExpand ? '' : 'hidden'} border-b border-gray-100 bg-gray-50/60 hover:bg-gray-100 transition duration-150`;
                         childTr.innerHTML = `
                             <td class="py-2.5 px-4 text-left text-xs text-gray-400 pl-8 whitespace-nowrap">└─ ${row.Tanggal || '-'}</td>
-                            <td class="py-2.5 px-4 text-left text-gray-700">${row.Keterangan || '-'} ${row.Nama && row.Nama !== '-' ? `<span class="text-xs text-gray-500 font-medium">(${row.Nama} ${row.Blok && row.Blok !== '-' ? row.Blok : ''})</span>` : ''}</td>
+                            <td class="py-2.5 px-4 text-left text-gray-700">${row.Keterangan || '-'} ${namaBlokHTML}</td>
                             <td class="py-2.5 px-4 text-center">
                                 <span class="${isPemasukan ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'} py-0.5 px-2 rounded-full text-xs font-semibold uppercase">
                                     ${kategori}
@@ -612,6 +618,11 @@
                     const lampiran = (row.Lampiran || "").trim();
                     const isPemasukan = kategori.toLowerCase() === 'pemasukan';
 
+                    const namaVal = (row.Nama || '').trim();
+                    const blokVal = (row.Blok || '').trim();
+                    const isNamaValid = namaVal && namaVal !== '-' && !namaVal.toLowerCase().includes('tidak ditemukan');
+                    const namaBlokHTML = isNamaValid ? `<span class="text-xs text-gray-500 font-medium">(${namaVal} ${blokVal && blokVal !== '-' ? blokVal : ''})</span>` : '';
+
                     let lampiranHTML = '-';
                     if (lampiran !== "") {
                         lampiranHTML = `<a href="${lampiran}" target="_blank" class="text-blue-500 hover:text-blue-700" title="Lihat Lampiran">
@@ -623,7 +634,7 @@
                     tr.className = "border-b border-gray-200 hover:bg-gray-50 transition duration-150";
                     tr.innerHTML = `
                         <td class="py-3 px-4 text-left font-medium whitespace-nowrap">${row.Tanggal || '-'}</td>
-                        <td class="py-3 px-4 text-left">${row.Keterangan || '-'} ${row.Nama && row.Nama !== '-' ? `<span class="text-xs text-gray-500 font-medium">(${row.Nama} ${row.Blok && row.Blok !== '-' ? row.Blok : ''})</span>` : ''}</td>
+                        <td class="py-3 px-4 text-left">${row.Keterangan || '-'} ${namaBlokHTML}</td>
                         <td class="py-3 px-4 text-center">
                             <span class="${isPemasukan ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'} py-1 px-2.5 rounded-full text-xs font-bold uppercase tracking-wider">
                                 ${kategori}
