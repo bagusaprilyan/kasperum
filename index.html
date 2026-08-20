@@ -75,7 +75,7 @@
         <!-- Section Grafik Keuangan -->
         <div class="bg-white p-6 rounded-xl shadow-sm mb-8">
             <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                <i class="fas fa-chart-bar text-blue-600 mr-2"></i> Grafik Arus Kas Per Bulan
+                <i class="fas fa-chart-bar text-blue-600 mr-2"></i> Grafik Seluruh Pemasukan & Pengeluaran Per Bulan
             </h2>
             <div class="relative w-full h-72 sm:h-80">
                 <canvas id="kasChart"></canvas>
@@ -86,9 +86,9 @@
         <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-8">
             <div class="p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <h2 class="text-lg font-bold text-gray-800 flex items-center">
-                    <i class="fas fa-check-circle text-green-600 mr-2"></i> Matriks Pembayaran Iuran Warga
+                    <i class="fas fa-check-circle text-green-600 mr-2"></i> Matriks Pembayaran Iuran Warga (Absen Kas Bulanan)
                 </h2>
-                <span class="text-xs text-gray-500">Centang hijau menunjukkan bulan yang sudah lunas</span>
+                <span class="text-xs text-gray-500">Hanya mencatat khusus iuran/kas bulanan (sumbangan/lainnya dikecualikan)</span>
             </div>
 
             <div class="overflow-x-auto">
@@ -252,9 +252,9 @@
             if (b.includes('mei') || b.includes('may')) return 'Mei';
             if (b.includes('jun')) return 'Juni';
             if (b.includes('jul')) return 'Juli';
-            if (b.includes('agu') || b.includes('ags')) return 'Agustus';
+            if (b.includes('agu') || b.includes('ags') || b.includes('aug')) return 'Agustus';
             if (b.includes('sep')) return 'September';
-            if (b.includes('okt')) return 'Okt';
+            if (b.includes('okt') || b.includes('oct')) return 'Okt';
             if (b.includes('nov')) return 'Nov';
             if (b.includes('des') || b.includes('dec')) return 'Des';
             return null;
@@ -288,7 +288,7 @@
                 const tanggal = (row.Tanggal || '').trim();
                 const namaBulanRaw = (row.Bulan || '').trim();
 
-                // Deteksi alokasi bulan untuk grafik (Hybrid: Utamakan Kolom Bulan, fallback ke Tanggal fisik)
+                // Grafik menggunakan tanggal fisik transaksi agar akurat 100% dengan total uang
                 let idxBulan = -1;
                 const normBulan = normalizeBulan(namaBulanRaw);
                 if (normBulan) {
@@ -398,6 +398,25 @@
                 let bulanRaw = (row.Bulan || '').trim();
                 const kategori = (row.Kategori || '').toLowerCase().trim();
                 const tanggal = (row.Tanggal || '').trim();
+                const keterangan = (row.Keterangan || '').toLowerCase();
+
+                // 1. Harus Pemasukan
+                if (kategori !== 'pemasukan') return;
+
+                // 2. FILTER KETAT: Hanya masukkan transaksi yang berhubungan dengan iuran/kas bulanan/rutin
+                const isKasOrIuran = keterangan.includes('iuran') || 
+                                     keterangan.includes('kas') || 
+                                     keterangan.includes('bulanan') || 
+                                     keterangan.includes('rutin');
+                                     
+                // Pengecualian mutlak jika ada kata sumbangan, bantuan, donasi, agustusan, 17an
+                const isExcluded = keterangan.includes('sumbangan') || 
+                                   keterangan.includes('bantuan') || 
+                                   keterangan.includes('donasi') || 
+                                   keterangan.includes('agustusan') ||
+                                   keterangan.includes('17an');
+
+                if (!isKasOrIuran || isExcluded) return;
 
                 // Jika kolom bulan kosong di spreadsheet, ambil dari tanggal fisik
                 if (!bulanRaw && tanggal.includes('/')) {
@@ -411,9 +430,8 @@
                 }
 
                 const bulanNorm = normalizeBulan(bulanRaw);
-                const isPemasukan = kategori === 'pemasukan';
 
-                if (nama && nama !== '-' && isPemasukan) {
+                if (nama && nama !== '-') {
                     const key = `${blok}-${nama}`;
                     if (!dataWarga[key]) {
                         dataWarga[key] = { nama, blok, bulanLunas: {} };
