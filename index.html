@@ -86,9 +86,9 @@
         <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-8">
             <div class="p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <h2 class="text-lg font-bold text-gray-800 flex items-center">
-                    <i class="fas fa-check-circle text-green-600 mr-2"></i> Matriks Pembayaran Iuran Warga (Absen Kas Bulanan)
+                    <i class="fas fa-check-circle text-green-600 mr-2"></i> Pembayaran Iuran Warga (Absen Kas Bulanan)
                 </h2>
-                <span class="text-xs text-gray-500">Hanya mencatat khusus iuran/kas bulanan (sumbangan/lainnya dikecualikan)</span>
+                <span class="text-xs text-gray-500"> </span>
             </div>
 
             <div class="overflow-x-auto">
@@ -174,6 +174,35 @@
 
     </main>
 
+    <!-- Modal Preview Gambar / Dokumen -->
+    <div id="image-modal" class="fixed inset-0 z-[100] hidden bg-gray-900/90 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 transition-all duration-300" onclick="closeImagePreview(event)">
+        <!-- Frame Modal (Putih, Rounded, Shadow besar) -->
+        <div class="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]" onclick="event.stopPropagation()">
+            
+            <!-- Header Modal -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50">
+                <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <i class="fas fa-file-invoice text-blue-600"></i> Lampiran Transaksi
+                </h3>
+                <button onclick="closeImagePreview(event)" class="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-full transition-colors focus:outline-none" title="Tutup">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <!-- Area Tampilan Gambar (Iframe) -->
+            <div class="relative flex-grow bg-gray-200 min-h-[50vh] sm:min-h-[75vh] flex items-center justify-center">
+                <!-- Loading Spinner -->
+                <div id="modal-loading" class="absolute flex flex-col items-center justify-center text-gray-500">
+                    <i class="fas fa-circle-notch fa-spin text-4xl mb-3 text-blue-500"></i>
+                    <span class="text-sm font-medium">Memuat lampiran dari Google Drive...</span>
+                </div>
+                
+                <!-- Iframe dari Google Drive Preview (Paling Stabil) -->
+                <iframe id="modal-iframe" src="" class="absolute inset-0 w-full h-full border-0 z-10 opacity-0 transition-opacity duration-500" onload="this.classList.remove('opacity-0'); document.getElementById('modal-loading').classList.add('hidden');"></iframe>
+            </div>
+        </div>
+    </div>
+
     <!-- Footer -->
     <footer class="text-center py-6 text-gray-500 text-sm">
         <p>&copy; 2026 Pengurus Pondok Selaras Asri. Dibuat dengan sistem terotomatisasi.</p>
@@ -190,6 +219,47 @@
         let showAllRows = false;
 
         window.onload = loadAllData;
+
+        function getEmbeddableUrl(url) {
+            if (!url) return "";
+            // Cek apakah ini link Google Drive (mengambil ID-nya)
+            const gdriveRegex = /\/file\/d\/([a-zA-Z0-9_-]+)/;
+            const match = url.match(gdriveRegex);
+            
+            if (match && match[1]) {
+                // Gunakan format /preview resmi dari Google (pasti bisa dimuat di iFrame)
+                return `https://drive.google.com/file/d/${match[1]}/preview`;
+            }
+            return url;
+        }
+
+        function showImagePreview(rawUrl, event) {
+            if(event) event.stopPropagation(); // Mencegah baris accordion terbuka
+            
+            const modal = document.getElementById('image-modal');
+            const modalIframe = document.getElementById('modal-iframe');
+            const loading = document.getElementById('modal-loading');
+            
+            // Set State ke Loading
+            modalIframe.classList.add('opacity-0'); // Sembunyikan iframe sebentar
+            loading.classList.remove('hidden');     // Tampilkan animasi muter
+            modal.classList.remove('hidden');       // Munculkan popup
+            
+            // Ganti URL source ke gambar/dokumen (otomatis memicu onload)
+            modalIframe.src = getEmbeddableUrl(rawUrl);
+        }
+
+        function closeImagePreview(event) {
+            // Jangan tutup jika warga klik tidak sengaja di dalam frame gambar
+            if (event && event.target.id === 'modal-iframe') return; 
+            
+            const modal = document.getElementById('image-modal');
+            const modalIframe = document.getElementById('modal-iframe');
+            
+            modal.classList.add('hidden');
+            // Hapus source setelah tertutup agar suara video/audio mati (jika ada) dan bisa reload saat dibuka lagi
+            setTimeout(() => { modalIframe.src = ''; }, 300); 
+        }
 
         function loadAllData() {
             if (!TRANSACTION_CSV_URL) {
@@ -591,9 +661,9 @@
 
                         let lampiranHTML = '-';
                         if (lampiran !== "") {
-                            lampiranHTML = `<a href="${lampiran}" target="_blank" class="text-blue-500 hover:text-blue-700" title="Lihat Lampiran">
+                            lampiranHTML = `<button onclick="showImagePreview('${lampiran}', event)" class="text-blue-500 hover:text-blue-700 focus:outline-none transition-transform hover:scale-110" title="Lihat Lampiran">
                                 <i class="fas fa-image text-lg"></i>
-                            </a>`;
+                            </button>`;
                         }
 
                         const childTr = document.createElement('tr');
@@ -625,9 +695,9 @@
 
                     let lampiranHTML = '-';
                     if (lampiran !== "") {
-                        lampiranHTML = `<a href="${lampiran}" target="_blank" class="text-blue-500 hover:text-blue-700" title="Lihat Lampiran">
+                        lampiranHTML = `<button onclick="showImagePreview('${lampiran}', event)" class="text-blue-500 hover:text-blue-700 focus:outline-none transition-transform hover:scale-110" title="Lihat Lampiran">
                             <i class="fas fa-image text-lg"></i>
-                        </a>`;
+                        </button>`;
                     }
 
                     const tr = document.createElement('tr');
