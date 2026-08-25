@@ -174,9 +174,9 @@
 
     </main>
 
-    <!-- Modal Preview Gambar / Dokumen -->
+    <!-- Modal Preview Gambar / Dokumen (Iframe Google Drive) -->
     <div id="image-modal" class="fixed inset-0 z-[100] hidden bg-gray-900/90 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 transition-all duration-300" onclick="closeImagePreview(event)">
-        <!-- Frame Modal (Putih, Rounded, Shadow besar) -->
+        <!-- Frame Modal -->
         <div class="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]" onclick="event.stopPropagation()">
             
             <!-- Header Modal -->
@@ -194,10 +194,10 @@
                 <!-- Loading Spinner -->
                 <div id="modal-loading" class="absolute flex flex-col items-center justify-center text-gray-500">
                     <i class="fas fa-circle-notch fa-spin text-4xl mb-3 text-blue-500"></i>
-                    <span class="text-sm font-medium">Memuat lampiran dari Google Drive...</span>
+                    <span class="text-sm font-medium mt-2">Memuat lampiran dari Google Drive...</span>
                 </div>
                 
-                <!-- Iframe dari Google Drive Preview (Paling Stabil) -->
+                <!-- Iframe dari Google Drive Preview -->
                 <iframe id="modal-iframe" src="" class="absolute inset-0 w-full h-full border-0 z-10 opacity-0 transition-opacity duration-500" onload="this.classList.remove('opacity-0'); document.getElementById('modal-loading').classList.add('hidden');"></iframe>
             </div>
         </div>
@@ -210,7 +210,7 @@
 
     <script>
         const TRANSACTION_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTdF4Mxui4mkkFVmad9uLKdm9ix8A0WYX9UxQPq2ECXMCiH-2mPtqaFPUT4BMWUgig3KX_Yj0O1tJHg/pub?gid=0&single=true&output=csv"; 
-        const MASTER_DATA_CSV_URL = ""; // Opsional: Kosongkan jika warga diambil langsung dari transaksi
+        const MASTER_DATA_CSV_URL = ""; 
 
         let myChart = null;
         let globalRawTransactions = [];
@@ -222,42 +222,35 @@
 
         function getEmbeddableUrl(url) {
             if (!url) return "";
-            // Cek apakah ini link Google Drive (mengambil ID-nya)
             const gdriveRegex = /\/file\/d\/([a-zA-Z0-9_-]+)/;
             const match = url.match(gdriveRegex);
-            
             if (match && match[1]) {
-                // Gunakan format /preview resmi dari Google (pasti bisa dimuat di iFrame)
                 return `https://drive.google.com/file/d/${match[1]}/preview`;
             }
             return url;
         }
 
         function showImagePreview(rawUrl, event) {
-            if(event) event.stopPropagation(); // Mencegah baris accordion terbuka
+            if(event) event.stopPropagation(); 
             
             const modal = document.getElementById('image-modal');
             const modalIframe = document.getElementById('modal-iframe');
             const loading = document.getElementById('modal-loading');
             
-            // Set State ke Loading
-            modalIframe.classList.add('opacity-0'); // Sembunyikan iframe sebentar
-            loading.classList.remove('hidden');     // Tampilkan animasi muter
-            modal.classList.remove('hidden');       // Munculkan popup
+            modalIframe.classList.add('opacity-0'); 
+            loading.classList.remove('hidden');     
+            modal.classList.remove('hidden');       
             
-            // Ganti URL source ke gambar/dokumen (otomatis memicu onload)
             modalIframe.src = getEmbeddableUrl(rawUrl);
         }
 
         function closeImagePreview(event) {
-            // Jangan tutup jika warga klik tidak sengaja di dalam frame gambar
             if (event && event.target.id === 'modal-iframe') return; 
             
             const modal = document.getElementById('image-modal');
             const modalIframe = document.getElementById('modal-iframe');
             
             modal.classList.add('hidden');
-            // Hapus source setelah tertutup agar suara video/audio mati (jika ada) dan bisa reload saat dibuka lagi
             setTimeout(() => { modalIframe.src = ''; }, 300); 
         }
 
@@ -358,7 +351,6 @@
                 const tanggal = (row.Tanggal || '').trim();
                 const namaBulanRaw = (row.Bulan || '').trim();
 
-                // Grafik menggunakan alokasi bulan (jika ada di kolom Bulan) atau tanggal fisik
                 let idxBulan = -1;
                 const normBulan = normalizeBulan(namaBulanRaw);
                 if (normBulan) {
@@ -380,7 +372,6 @@
             });
 
             const saldoAkhir = totalPemasukan - totalPengeluaran;
-
             renderCards(totalPemasukan, totalPengeluaran, saldoAkhir);
 
             const chartLabels = Object.keys(rekapBulan);
@@ -428,17 +419,11 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'top' }
-                    },
+                    plugins: { legend: { position: 'top' } },
                     scales: {
                         y: {
                             beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return 'Rp ' + value.toLocaleString('id-ID');
-                                }
-                            }
+                            ticks: { callback: function(value) { return 'Rp ' + value.toLocaleString('id-ID'); } }
                         }
                     }
                 }
@@ -470,25 +455,13 @@
                 const tanggal = (row.Tanggal || '').trim();
                 const keterangan = (row.Keterangan || '').toLowerCase();
 
-                // 1. Harus Pemasukan
                 if (kategori !== 'pemasukan') return;
 
-                // 2. FILTER KETAT: Hanya masukkan transaksi yang berhubungan dengan iuran/kas bulanan/rutin
-                const isKasOrIuran = keterangan.includes('iuran') || 
-                                     keterangan.includes('kas') || 
-                                     keterangan.includes('bulanan') || 
-                                     keterangan.includes('rutin');
-                                     
-                // Pengecualian mutlak jika ada kata sumbangan, bantuan, donasi, agustusan, 17an
-                const isExcluded = keterangan.includes('sumbangan') || 
-                                   keterangan.includes('bantuan') || 
-                                   keterangan.includes('donasi') || 
-                                   keterangan.includes('agustusan') ||
-                                   keterangan.includes('17an');
+                const isKasOrIuran = keterangan.includes('iuran') || keterangan.includes('kas') || keterangan.includes('bulanan') || keterangan.includes('rutin');
+                const isExcluded = keterangan.includes('sumbangan') || keterangan.includes('bantuan') || keterangan.includes('donasi') || keterangan.includes('agustusan') || keterangan.includes('17an');
 
                 if (!isKasOrIuran || isExcluded) return;
 
-                // Jika kolom bulan kosong di spreadsheet, ambil dari tanggal fisik
                 if (!bulanRaw && tanggal.includes('/')) {
                     const parts = tanggal.split('/');
                     if (parts.length >= 2) {
@@ -500,8 +473,8 @@
                 }
 
                 const bulanNorm = normalizeBulan(bulanRaw);
-
-                const isNamaValid = nama && nama !== '-' && !nama.toLowerCase().includes('tidak ditemukan');
+                const isNamaValid = nama && nama !== '-' && !nama.toLowerCase().includes('ditemukan');
+                
                 if (isNamaValid) {
                     const key = `${blok}-${nama}`;
                     if (!dataWarga[key]) {
@@ -566,7 +539,44 @@
             const searchTerm = document.getElementById('search-input').value.toLowerCase();
             const kategoriFilter = document.getElementById('kategori-filter').value;
 
-            let filteredData = globalRawTransactions.filter(row => {
+            // Deteksi duplikasi pembayaran kas untuk orang & bulan yang sama
+            const paymentTracker = {};
+            globalRawTransactions.forEach((row, idx) => {
+                const nama = (row.Nama || '').trim().toLowerCase();
+                const blok = (row.Blok || '').trim().toLowerCase();
+                const kategori = (row.Kategori || '').toLowerCase().trim();
+                const ket = (row.Keterangan || '').toLowerCase();
+                
+                const isKasOrIuran = ket.includes('iuran') || ket.includes('kas') || ket.includes('bulanan');
+                if (kategori === 'pemasukan' && isKasOrIuran && nama && nama !== '-') {
+                    let bulan = normalizeBulan(row.Bulan);
+                    if (!bulan && row.Tanggal && row.Tanggal.includes('/')) {
+                        const parts = row.Tanggal.split('/');
+                        const daftarBulan = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Okt', 'Nov', 'Des'];
+                        const mIdx = parseInt(parts[1], 10) - 1;
+                        if (mIdx >= 0 && mIdx < 12) bulan = daftarBulan[mIdx];
+                    }
+                    if (bulan) {
+                        const key = `${blok}-${nama}-${bulan}`;
+                        if (!paymentTracker[key]) paymentTracker[key] = [];
+                        paymentTracker[key].push(idx);
+                    }
+                }
+            });
+
+            // Tandai indeks transaksi yang dobel
+            const duplicateIndices = new Set();
+            Object.values(paymentTracker).forEach(indices => {
+                if (indices.length > 1) {
+                    // Biarkan yang pertama, tandai sisanya sebagai duplikat
+                    for (let i = 1; i < indices.length; i++) {
+                        duplicateIndices.add(indices[i]);
+                    }
+                }
+            });
+
+            let filteredData = globalRawTransactions.filter((row, originalIndex) => {
+                row._originalIndex = originalIndex; // Simpan indeks asli
                 const ket = (row.Keterangan || '').toLowerCase();
                 const nama = (row.Nama || '').toLowerCase();
                 const blok = (row.Blok || '').toLowerCase();
@@ -656,8 +666,14 @@
 
                         const namaVal = (row.Nama || '').trim();
                         const blokVal = (row.Blok || '').trim();
-                        const isNamaValid = namaVal && namaVal !== '-' && !namaVal.toLowerCase().includes('tidak ditemukan');
+                        const isNamaValid = namaVal && namaVal !== '-' && !namaVal.toLowerCase().includes('ditemukan');
                         const namaBlokHTML = isNamaValid ? `<span class="text-xs text-gray-500 font-medium">(${namaVal} ${blokVal && blokVal !== '-' ? blokVal : ''})</span>` : '';
+
+                        // Cek Notice Duplikat
+                        let duplicateNotice = '';
+                        if (duplicateIndices.has(row._originalIndex)) {
+                            duplicateNotice = `<span class="inline-flex items-center gap-1 text-[10px] text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded font-bold ml-2 shadow-sm" title="Pemberitahuan: Terdeteksi pembayaran ganda/lebih untuk orang dan bulan yang sama"><i class="fas fa-exclamation-triangle"></i> Note: Pembayaran Dobel</span>`;
+                        }
 
                         let lampiranHTML = '-';
                         if (lampiran !== "") {
@@ -670,7 +686,7 @@
                         childTr.className = `${groupId} ${autoExpand ? '' : 'hidden'} border-b border-gray-100 bg-gray-50/60 hover:bg-gray-100 transition duration-150`;
                         childTr.innerHTML = `
                             <td class="py-2.5 px-4 text-left text-xs text-gray-400 pl-8 whitespace-nowrap">└─ ${row.Tanggal || '-'}</td>
-                            <td class="py-2.5 px-4 text-left text-gray-700">${row.Keterangan || '-'} ${namaBlokHTML}</td>
+                            <td class="py-2.5 px-4 text-left text-gray-700">${row.Keterangan || '-'} ${namaBlokHTML} ${duplicateNotice}</td>
                             <td class="py-2.5 px-4 text-center">
                                 <span class="${isPemasukan ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'} py-0.5 px-2 rounded-full text-xs font-semibold uppercase">
                                     ${kategori}
@@ -690,27 +706,51 @@
 
                     const namaVal = (row.Nama || '').trim();
                     const blokVal = (row.Blok || '').trim();
-                    const isNamaValid = namaVal && namaVal !== '-' && !namaVal.toLowerCase().includes('tidak ditemukan');
-                    const namaBlokHTML = isNamaValid ? `<span class="text-xs text-gray-500 font-medium">(${namaVal} ${blokVal && blokVal !== '-' ? blokVal : ''})</span>` : '';
+                    const isNamaValid = namaVal && namaVal !== '-' && !namaVal.toLowerCase().includes('ditemukan');
+                    
+                    const namaBlokHTML = isNamaValid ? `<span class="inline-flex items-center gap-1.5 text-[11px] text-indigo-700 bg-indigo-100 border border-indigo-200 font-bold px-2.5 py-0.5 rounded-md ml-2 shadow-sm"><i class="fas fa-user text-indigo-500"></i> ${namaVal} ${blokVal && blokVal !== '-' ? blokVal : ''}</span>` : '';
 
-                    let lampiranHTML = '-';
+                    // Cek Notice Duplikat untuk Baris Tunggal
+                    let duplicateNotice = '';
+                    if (duplicateIndices.has(row._originalIndex)) {
+                        duplicateNotice = `<span class="inline-flex items-center gap-1 text-[10px] text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded font-bold ml-2 shadow-sm" title="Pemberitahuan: Terdeteksi pembayaran ganda/lebih untuk orang dan bulan yang sama"><i class="fas fa-exclamation-triangle"></i> Note: Pembayaran Dobel</span>`;
+                    }
+
+                    let lampiranHTML = '<span class="text-gray-300 text-xs italic">-</span>';
                     if (lampiran !== "") {
-                        lampiranHTML = `<button onclick="showImagePreview('${lampiran}', event)" class="text-blue-500 hover:text-blue-700 focus:outline-none transition-transform hover:scale-110" title="Lihat Lampiran">
-                            <i class="fas fa-image text-lg"></i>
+                        lampiranHTML = `<button onclick="showImagePreview('${lampiran}', event)" class="w-8 h-8 inline-flex items-center justify-center bg-white border border-blue-200 text-blue-600 rounded-full hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all duration-300 shadow-sm focus:outline-none hover:scale-110" title="Lihat Lampiran">
+                            <i class="fas fa-paperclip"></i>
                         </button>`;
                     }
 
                     const tr = document.createElement('tr');
-                    tr.className = "border-b border-gray-200 hover:bg-gray-50 transition duration-150";
+                    tr.className = "bg-blue-50/70 hover:bg-blue-100/80 border-b border-blue-200 transition duration-150";
                     tr.innerHTML = `
-                        <td class="py-3 px-4 text-left font-medium whitespace-nowrap">${row.Tanggal || '-'}</td>
-                        <td class="py-3 px-4 text-left">${row.Keterangan || '-'} ${namaBlokHTML}</td>
+                        <td class="py-3 px-4 text-left whitespace-nowrap">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-600 shadow-sm">
+                                    <i class="far fa-calendar-alt text-sm"></i>
+                                </div>
+                                <span class="font-bold text-blue-900">${row.Tanggal || '-'}</span>
+                            </div>
+                        </td>
+                        <td class="py-3 px-4 text-left">
+                            <div class="flex items-center flex-wrap gap-1">
+                                <span class="font-semibold text-gray-800">${row.Keterangan || '-'}</span> 
+                                ${namaBlokHTML}
+                                ${duplicateNotice}
+                            </div>
+                        </td>
                         <td class="py-3 px-4 text-center">
-                            <span class="${isPemasukan ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'} py-1 px-2.5 rounded-full text-xs font-bold uppercase tracking-wider">
+                            <span class="${isPemasukan ? 'bg-gradient-to-r from-emerald-100 to-green-100 text-green-800 border border-green-300' : 'bg-gradient-to-r from-rose-100 to-red-100 text-red-800 border border-red-300'} py-1 px-3 rounded-md text-[11px] font-extrabold uppercase tracking-widest shadow-sm">
                                 ${kategori}
                             </span>
                         </td>
-                        <td class="py-3 px-4 text-right font-semibold">Rp ${nominal.toLocaleString('id-ID')}</td>
+                        <td class="py-3 px-4 text-right">
+                            <span class="inline-block font-bold text-gray-800 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm whitespace-nowrap">
+                                Rp ${nominal.toLocaleString('id-ID')}
+                            </span>
+                        </td>
                         <td class="py-3 px-4 text-center">${lampiranHTML}</td>
                     `;
                     tableBody.appendChild(tr);
