@@ -653,7 +653,21 @@
                 }
             });
 
-            const keys = Object.keys(dataWarga);
+            // 🔤 URUTKAN SESUAI BLOK (numerik dulu, lalu alfabet blok, lalu nama)
+            const keys = Object.keys(dataWarga).sort((a, b) => {
+                const wa = dataWarga[a], wb = dataWarga[b];
+                const norm = s => (s || '').toString().toUpperCase().replace(/\s+/g, '');
+                // pisahkan huruf depan & angka (C14 -> ['C', 14])
+                const split = s => {
+                    const m = norm(s).match(/^([A-Z]*)(\d*)$/);
+                    return m ? [m[1], parseInt(m[2] || '0', 10)] : [norm(s), 0];
+                };
+                const [la, na] = split(wa.blok);
+                const [lb, nb] = split(wb.blok);
+                if (la !== lb) return la.localeCompare(lb);
+                if (na !== nb) return na - nb;
+                return (wa.nama || '').localeCompare(wb.nama || '', 'id');
+            });
             if (keys.length === 0) {
                 matrixBody.innerHTML = `<tr><td colspan="14" class="py-10 text-center text-slate-400"><i class="fas fa-inbox text-3xl mb-2 block opacity-60"></i><span class="italic">Belum ada data pembayaran iuran warga.</span></td></tr>`;
                 return;
@@ -772,6 +786,14 @@
                 }
                 groupedByDate[tgl].push(row);
             });
+
+            // 📅 URUTKAN TANGGAL: terbaru di atas (descending)
+            const parseTgl = s => {
+                const m = (s || '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+                if (!m) return 0; // "Tanpa Tanggal" -> paling bawah
+                return new Date(+m[3], +m[2] - 1, +m[1]).getTime();
+            };
+            dateOrder.sort((a, b) => parseTgl(b) - parseTgl(a));
 
             const renderDates = showAllRows ? dateOrder : dateOrder.slice(0, DEFAULT_ROW_LIMIT);
 
