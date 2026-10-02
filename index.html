@@ -283,21 +283,46 @@
                 .catch(err => console.error("Error loading CSV:", err));
         }
 
+        // Parser CSV yang BENAR: menghormati tanda kutip (quoted field).
+        // Contoh: "Tf ke Pak Warsito, Belanaja Tirakatan" -> 1 kolom, bukan 2.
+        function parseCSVLine(line) {
+            const out = [];
+            let cur = '';
+            let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+                if (inQuotes) {
+                    if (ch === '"') {
+                        if (line[i + 1] === '"') { cur += '"'; i++; }
+                        else { inQuotes = false; }
+                    } else {
+                        cur += ch;
+                    }
+                } else {
+                    if (ch === '"') inQuotes = true;
+                    else if (ch === ',') { out.push(cur); cur = ''; }
+                    else cur += ch;
+                }
+            }
+            out.push(cur);
+            return out;
+        }
+
         function parseCSV(text) {
             const lines = text.trim().split('\n');
             const result = [];
             if (lines.length === 0) return result;
 
-            const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+            const headers = parseCSVLine(lines[0]).map(h => h.trim().replace(/^"|"$/g, ''));
 
             for (let i = 1; i < lines.length; i++) {
                 if (!lines[i].trim()) continue;
-                const rawValues = lines[i].split(',');
+                const rawValues = parseCSVLine(lines[i]);
                 const obj = {};
-                
+
                 headers.forEach((header, index) => {
-                    let val = rawValues[index] ? rawValues[index].trim() : '';
-                    val = val.replace(/^"|"$/g, ''); 
+                    let val = rawValues[index] !== undefined ? rawValues[index].trim() : '';
+                    val = val.replace(/^"|"$/g, '');
                     obj[header] = val;
                 });
                 result.push(obj);
