@@ -11,23 +11,105 @@
     <!-- FontAwesome untuk Ikon -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Font Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        :root {
+            --brand: #4f46e5;
+            --brand-2: #7c3aed;
+            --ink: #0f172a;
+        }
+        * { -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background:
+                radial-gradient(1200px 600px at 10% -10%, #e0e7ff 0%, transparent 55%),
+                radial-gradient(1000px 500px at 100% 0%, #dbeafe 0%, transparent 50%),
+                #f8fafc;
+            background-attachment: fixed;
+        }
+
+        /* Scrollbar halus */
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; border: 2px solid transparent; background-clip: content-box; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; background-clip: content-box; }
+
+        /* Animasi masuk */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(14px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .anim-up { animation: fadeUp .5s cubic-bezier(.22,.61,.36,1) both; }
+        .d1 { animation-delay: .05s } .d2 { animation-delay: .12s }
+        .d3 { animation-delay: .19s } .d4 { animation-delay: .26s }
+        .d5 { animation-delay: .33s }
+
+        /* Kartu glass */
+        .glass {
+            background: rgba(255,255,255,.72);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255,255,255,.65);
+            box-shadow: 0 10px 30px -12px rgba(15,23,42,.18);
+        }
+
+        /* Kartu statistik gradient */
+        .stat-card { transition: transform .25s ease, box-shadow .25s ease; }
+        .stat-card:hover { transform: translateY(-4px); box-shadow: 0 22px 40px -18px rgba(15,23,42,.35); }
+        .stat-in   { background: linear-gradient(135deg,#059669,#10b981); }
+        .stat-out  { background: linear-gradient(135deg,#dc2626,#f43f5e); }
+        .stat-balc { background: linear-gradient(135deg,#4f46e5,#7c3aed); }
+
+        /* Skeleton shimmer */
+        .skel { position: relative; overflow: hidden; background: #e2e8f0; border-radius: 8px; }
+        .skel::after {
+            content: ''; position: absolute; inset: 0; transform: translateX(-100%);
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,.7), transparent);
+            animation: shimmer 1.4s infinite;
+        }
+        @keyframes shimmer { 100% { transform: translateX(100%); } }
+
+        /* Tabel */
+        .tx-row { transition: background .15s ease; }
+        .tx-row:hover { background: #f8fafc; }
+        .pill { display:inline-flex; align-items:center; gap:.35rem; font-weight:700; font-size:.68rem; letter-spacing:.03em; padding:.28rem .6rem; border-radius:999px; text-transform:uppercase; }
+        .pill-in  { background:#dcfce7; color:#166534; }
+        .pill-out { background:#fee2e2; color:#991b1b; }
+
+        /* Sticky header tabel */
+        thead.sticky-head th { position: sticky; top: 0; z-index: 5; backdrop-filter: blur(8px); background: rgba(248,250,252,.92); }
+
+        /* Cell bulan matriks */
+        .bln { width: 30px; height: 30px; display:inline-flex; align-items:center; justify-content:center; border-radius: 9px; font-weight:700; font-size:.7rem; }
+        .bln-on  { background:#dcfce7; color:#15803d; }
+        .bln-off { background:#f1f5f9; color:#cbd5e1; }
+
+        /* Fokus aksesibel */
+        a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+            outline: 2px solid var(--brand); outline-offset: 2px;
+        }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col">
+<body class="text-slate-800 min-h-screen flex flex-col">
 
     <!-- Header / Navbar -->
-    <header class="bg-blue-600 text-white shadow-md">
+    <header class="sticky top-0 z-40 text-white shadow-lg" style="background:linear-gradient(120deg,#1e1b4b 0%,#312e81 45%,#4f46e5 100%);">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
-                <div class="flex items-center">
-                    <i class="fas fa-wallet text-2xl mr-3"></i>
-                    <span class="font-bold text-xl tracking-wider">Kas Pondok Selaras Asri</span>
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-white/15 border border-white/25 flex items-center justify-center backdrop-blur">
+                        <i class="fas fa-wallet text-lg"></i>
+                    </div>
+                    <div class="leading-tight">
+                        <div class="font-extrabold text-base sm:text-lg tracking-wide">Kas Pondok Selaras Asri</div>
+                        <div class="text-[11px] text-indigo-200 font-medium">Transparansi Keuangan Warga</div>
+                    </div>
                 </div>
-                <div class="text-sm font-light hidden md:block">
-                    Transparansi Keuangan Warga
+                <div class="text-right hidden sm:block">
+                    <div id="clock-date" class="text-xs font-semibold text-indigo-100"></div>
+                    <div class="text-[11px] text-indigo-300 flex items-center justify-end gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Data tersinkron
+                    </div>
                 </div>
             </div>
         </div>
@@ -35,65 +117,69 @@
 
     <!-- Main Content -->
     <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
+
         <!-- Kartu Ringkasan Keuangan -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
             <!-- Pemasukan -->
-            <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500 flex items-center justify-between">
+            <div class="stat-card stat-in anim-up d1 rounded-2xl p-5 text-white flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Pemasukan</p>
-                    <h3 id="total-pemasukan" class="text-2xl font-bold text-gray-800 mt-1">Rp 0</h3>
+                    <p class="text-[11px] font-bold uppercase tracking-wider text-white/80">Total Pemasukan</p>
+                    <h3 id="total-pemasukan" class="text-2xl sm:text-3xl font-extrabold mt-1">Rp 0</h3>
                 </div>
-                <div class="bg-green-100 p-3 rounded-full text-green-600">
+                <div class="w-12 h-12 rounded-xl bg-white/20 border border-white/25 flex items-center justify-center">
                     <i class="fas fa-arrow-down text-xl"></i>
                 </div>
             </div>
 
             <!-- Pengeluaran -->
-            <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-red-500 flex items-center justify-between">
+            <div class="stat-card stat-out anim-up d2 rounded-2xl p-5 text-white flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Pengeluaran</p>
-                    <h3 id="total-pengeluaran" class="text-2xl font-bold text-gray-800 mt-1">Rp 0</h3>
+                    <p class="text-[11px] font-bold uppercase tracking-wider text-white/80">Total Pengeluaran</p>
+                    <h3 id="total-pengeluaran" class="text-2xl sm:text-3xl font-extrabold mt-1">Rp 0</h3>
                 </div>
-                <div class="bg-red-100 p-3 rounded-full text-red-600">
+                <div class="w-12 h-12 rounded-xl bg-white/20 border border-white/25 flex items-center justify-center">
                     <i class="fas fa-arrow-up text-xl"></i>
                 </div>
             </div>
 
             <!-- Saldo Akhir -->
-            <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-500 flex items-center justify-between">
+            <div class="stat-card stat-balc anim-up d3 rounded-2xl p-5 text-white flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Saldo Kas Saat Ini</p>
-                    <h3 id="saldo-akhir" class="text-2xl font-bold text-blue-600 mt-1">Rp 0</h3>
+                    <p class="text-[11px] font-bold uppercase tracking-wider text-white/80">Saldo Kas Saat Ini</p>
+                    <h3 id="saldo-akhir" class="text-2xl sm:text-3xl font-extrabold mt-1">Rp 0</h3>
                 </div>
-                <div class="bg-blue-100 p-3 rounded-full text-blue-600">
+                <div class="w-12 h-12 rounded-xl bg-white/20 border border-white/25 flex items-center justify-center">
                     <i class="fas fa-coins text-xl"></i>
                 </div>
             </div>
         </div>
 
         <!-- Section Grafik Keuangan -->
-        <div class="bg-white p-6 rounded-xl shadow-sm mb-8">
-            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                <i class="fas fa-chart-bar text-blue-600 mr-2"></i> Grafik Seluruh Pemasukan & Pengeluaran Per Bulan
-            </h2>
+        <div class="glass rounded-2xl p-5 sm:p-6 mb-8 anim-up d3">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <span class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center"><i class="fas fa-chart-column"></i></span>
+                    Pemasukan &amp; Pengeluaran Per Bulan
+                </h2>
+            </div>
             <div class="relative w-full h-72 sm:h-80">
                 <canvas id="kasChart"></canvas>
             </div>
         </div>
 
         <!-- Section Matriks Pembayaran Iuran Warga -->
-        <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-8">
-            <div class="p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <h2 class="text-lg font-bold text-gray-800 flex items-center">
-                    <i class="fas fa-check-circle text-green-600 mr-2"></i> Pembayaran Iuran Warga (Absen Kas Bulanan)
+        <div class="glass rounded-2xl overflow-hidden mb-8 anim-up d4">
+            <div class="p-5 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <h2 class="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <span class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center"><i class="fas fa-circle-check"></i></span>
+                    Pembayaran Iuran Warga
                 </h2>
-                <span class="text-xs text-gray-500"> </span>
+                <span class="text-xs text-slate-500">Absen kas bulanan per rumah</span>
             </div>
 
             <div class="overflow-x-auto">
                 <table class="w-full text-sm text-center">
-                    <thead class="bg-gray-50 text-gray-600 uppercase text-xs">
+                    <thead class="sticky-head text-slate-500 uppercase text-[11px] tracking-wide">
                         <tr>
                             <th class="py-3 px-4 text-left">Nama</th>
                             <th class="py-3 px-4">Blok</th>
@@ -113,7 +199,7 @@
                     </thead>
                     <tbody id="matrix-body">
                         <tr>
-                            <td colspan="14" class="py-6 text-gray-400 italic">Memuat data iuran warga...</td>
+                            <td colspan="14" class="py-6 text-slate-400 italic">Memuat data iuran warga...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -121,22 +207,23 @@
         </div>
 
         <!-- Section Tabel Riwayat Transaksi -->
-        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-            <div class="p-6 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="glass rounded-2xl overflow-hidden anim-up d5">
+            <div class="p-5 sm:p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h2 class="text-lg font-bold text-gray-800 flex items-center">
-                        <i class="fas fa-list-alt text-blue-600 mr-2"></i> Riwayat Transaksi Terakhir
+                    <h2 class="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <span class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center"><i class="fas fa-receipt"></i></span>
+                        Riwayat Transaksi
                     </h2>
-                    <p class="text-xs text-gray-500 mt-0.5">Transaksi pada tanggal sama otomatis dikelompokkan (klik baris untuk membuka rincian)</p>
+                    <p class="text-xs text-slate-500 mt-1">Transaksi tanggal sama otomatis dikelompokkan (klik untuk rincian)</p>
                 </div>
-                
+
                 <!-- Filter & Search Bar -->
                 <div class="flex flex-col sm:flex-row gap-3">
                     <div class="relative">
-                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
-                        <input type="text" id="search-input" onkeyup="filterAndRenderTable()" placeholder="Cari nama, blok, keterangan..." class="pl-8 pr-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-60">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        <input type="text" id="search-input" onkeyup="filterAndRenderTable()" placeholder="Cari nama, blok, keterangan..." class="pl-8 pr-3 py-2 text-xs bg-white/80 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-64 transition">
                     </div>
-                    <select id="kategori-filter" onchange="filterAndRenderTable()" class="py-1.5 px-3 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                    <select id="kategori-filter" onchange="filterAndRenderTable()" class="py-2 px-3 text-xs bg-white/80 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
                         <option value="semua">Semua Transaksi</option>
                         <option value="pemasukan">Pemasukan Saja</option>
                         <option value="pengeluaran">Pengeluaran Saja</option>
@@ -146,7 +233,7 @@
 
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
-                    <thead class="bg-gray-50 text-gray-600 uppercase text-xs border-b border-gray-200">
+                    <thead class="sticky-head text-slate-500 uppercase text-[11px] tracking-wide border-b border-slate-200">
                         <tr>
                             <th class="py-3 px-4 text-left">Tanggal</th>
                             <th class="py-3 px-4 text-left">Keterangan</th>
@@ -157,15 +244,15 @@
                     </thead>
                     <tbody id="table-body">
                         <tr>
-                            <td colspan="5" class="py-6 text-center text-gray-400 italic">Memuat riwayat transaksi...</td>
+                            <td colspan="5" class="py-6 text-center text-slate-400 italic">Memuat riwayat transaksi...</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
             <!-- Tombol Limit / Pagination -->
-            <div id="pagination-container" class="p-4 bg-gray-50 text-center border-t border-gray-100 hidden">
-                <button id="btn-toggle-limit" onclick="toggleTableLimit()" class="inline-flex items-center gap-2 text-xs font-semibold text-blue-600 hover:text-blue-800 focus:outline-none bg-white border border-blue-200 px-4 py-2 rounded-lg shadow-sm hover:bg-blue-50 transition">
+            <div id="pagination-container" class="p-4 bg-slate-50/70 text-center border-t border-slate-100 hidden">
+                <button id="btn-toggle-limit" onclick="toggleTableLimit()" class="inline-flex items-center gap-2 text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-white border border-indigo-200 px-4 py-2 rounded-xl shadow-sm hover:bg-indigo-50 transition focus:outline-none">
                     <span>Tampilkan Selengkapnya</span>
                     <i id="limit-icon" class="fas fa-chevron-down text-xs"></i>
                 </button>
@@ -204,8 +291,11 @@
     </div>
 
     <!-- Footer -->
-    <footer class="text-center py-6 text-gray-500 text-sm">
-        <p>&copy; 2026 Pengurus Pondok Selaras Asri. Dibuat dengan sistem terotomatisasi.</p>
+    <footer class="mt-4 py-8 text-center">
+        <div class="text-slate-500 text-sm font-medium">&copy; 2026 Pengurus Pondok Selaras Asri</div>
+        <div class="text-[11px] text-slate-400 mt-1 flex items-center justify-center gap-1.5">
+            <i class="fas fa-shield-halved text-emerald-500"></i> Data real-time &middot; sistem terotomatisasi
+        </div>
     </footer>
 
     <script>
@@ -218,7 +308,11 @@
         const DEFAULT_ROW_LIMIT = 10;
         let showAllRows = false;
 
-        window.onload = loadAllData;
+        window.onload = function() {
+            tickClock();
+            setInterval(tickClock, 30000);
+            loadAllData();
+        };
 
         function getEmbeddableUrl(url) {
             if (!url) return "";
@@ -333,15 +427,15 @@
         function normalizeBulan(bStr) {
             if (!bStr) return null;
             const b = bStr.toLowerCase().trim();
-            if (b.includes('jan')) return 'Januari';
-            if (b.includes('feb')) return 'Februari';
-            if (b.includes('mar')) return 'Maret';
-            if (b.includes('apr')) return 'April';
+            if (b.includes('jan')) return 'Jan';
+            if (b.includes('feb')) return 'Feb';
+            if (b.includes('mar')) return 'Mar';
+            if (b.includes('apr')) return 'Apr';
             if (b.includes('mei') || b.includes('may')) return 'Mei';
-            if (b.includes('jun')) return 'Juni';
-            if (b.includes('jul')) return 'Juli';
-            if (b.includes('agu') || b.includes('ags') || b.includes('aug')) return 'Agustus';
-            if (b.includes('sep')) return 'September';
+            if (b.includes('jun')) return 'Jun';
+            if (b.includes('jul')) return 'Jul';
+            if (b.includes('agu') || b.includes('ags') || b.includes('aug')) return 'Ags';
+            if (b.includes('sep')) return 'Sep';
             if (b.includes('okt') || b.includes('oct')) return 'Okt';
             if (b.includes('nov')) return 'Nov';
             if (b.includes('des') || b.includes('dec')) return 'Des';
@@ -355,15 +449,15 @@
             let totalPengeluaran = 0;
 
             const rekapBulan = {
-                'Januari': { in: 0, out: 0 },
-                'Februari': { in: 0, out: 0 },
-                'Maret': { in: 0, out: 0 },
-                'April': { in: 0, out: 0 },
+                'Jan': { in: 0, out: 0 },
+                'Feb': { in: 0, out: 0 },
+                'Mar': { in: 0, out: 0 },
+                'Apr': { in: 0, out: 0 },
                 'Mei': { in: 0, out: 0 },
-                'Juni': { in: 0, out: 0 },
-                'Juli': { in: 0, out: 0 },
-                'Agustus': { in: 0, out: 0 },
-                'September': { in: 0, out: 0 },
+                'Jun': { in: 0, out: 0 },
+                'Jul': { in: 0, out: 0 },
+                'Ags': { in: 0, out: 0 },
+                'Sep': { in: 0, out: 0 },
                 'Okt': { in: 0, out: 0 },
                 'Nov': { in: 0, out: 0 },
                 'Des': { in: 0, out: 0 }
@@ -422,12 +516,29 @@
         function renderCards(totalIn, totalOut, saldo) {
             document.getElementById('total-pemasukan').innerText = 'Rp ' + totalIn.toLocaleString('id-ID');
             document.getElementById('total-pengeluaran').innerText = '-Rp ' + totalOut.toLocaleString('id-ID');
-            document.getElementById('saldo-akhir').innerText = 'Rp ' + saldo.toLocaleString('id-ID');
+            document.getElementById('saldo-akhir').innerText = (saldo < 0 ? '-Rp ' : 'Rp ') + Math.abs(saldo).toLocaleString('id-ID');
+        }
+
+        // Jam & tanggal live di navbar
+        function tickClock() {
+            const el = document.getElementById('clock-date');
+            if (!el) return;
+            const now = new Date();
+            const hari = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'][now.getDay()];
+            const bln = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'][now.getMonth()];
+            el.innerText = `${hari}, ${now.getDate()} ${bln} ${now.getFullYear()} · ${String(now.getHours()).padStart(2,'0')}.${String(now.getMinutes()).padStart(2,'0')}`;
         }
 
         function renderChart(labels, dataIn, dataOut) {
             const ctx = document.getElementById('kasChart').getContext('2d');
             if (myChart) myChart.destroy();
+
+            const gradIn = ctx.createLinearGradient(0, 0, 0, 320);
+            gradIn.addColorStop(0, 'rgba(16,185,129,0.95)');
+            gradIn.addColorStop(1, 'rgba(16,185,129,0.35)');
+            const gradOut = ctx.createLinearGradient(0, 0, 0, 320);
+            gradOut.addColorStop(0, 'rgba(244,63,94,0.95)');
+            gradOut.addColorStop(1, 'rgba(244,63,94,0.35)');
 
             myChart = new Chart(ctx, {
                 type: 'bar',
@@ -437,29 +548,49 @@
                         {
                             label: 'Pemasukan',
                             data: dataIn,
-                            backgroundColor: 'rgba(34, 197, 94, 0.75)',
-                            borderColor: 'rgb(34, 197, 94)',
+                            backgroundColor: gradIn,
+                            borderColor: 'rgb(5,150,105)',
                             borderWidth: 1,
-                            borderRadius: 6
+                            borderRadius: 8,
+                            maxBarThickness: 34
                         },
                         {
                             label: 'Pengeluaran',
                             data: dataOut,
-                            backgroundColor: 'rgba(239, 68, 68, 0.75)',
-                            borderColor: 'rgb(239, 68, 68)',
+                            backgroundColor: gradOut,
+                            borderColor: 'rgb(225,29,72)',
                             borderWidth: 1,
-                            borderRadius: 6
+                            borderRadius: 8,
+                            maxBarThickness: 34
                         }
                     ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { position: 'top' } },
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { usePointStyle: true, pointStyle: 'circle', font: { family: 'Inter', weight: '600', size: 12 }, padding: 16 }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(15,23,42,.92)',
+                            padding: 12,
+                            cornerRadius: 10,
+                            titleFont: { family: 'Inter', weight: '700' },
+                            bodyFont: { family: 'Inter' },
+                            callbacks: {
+                                label: function(c) { return ' ' + c.dataset.label + ': Rp ' + Number(c.parsed.y).toLocaleString('id-ID'); }
+                            }
+                        }
+                    },
                     scales: {
+                        x: { grid: { display: false }, ticks: { font: { family: 'Inter', weight: '600' } } },
                         y: {
                             beginAtZero: true,
-                            ticks: { callback: function(value) { return 'Rp ' + value.toLocaleString('id-ID'); } }
+                            grid: { color: 'rgba(148,163,184,.18)' },
+                            ticks: { callback: function(value) { return 'Rp ' + value.toLocaleString('id-ID'); }, font: { family: 'Inter' } }
                         }
                     }
                 }
@@ -470,7 +601,7 @@
             const matrixBody = document.getElementById('matrix-body');
             matrixBody.innerHTML = '';
 
-            const daftarBulan = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Okt', 'Nov', 'Des'];
+            const daftarBulan = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
             const dataWarga = {};
 
             if (globalMasterData.length > 0) {
@@ -524,25 +655,25 @@
 
             const keys = Object.keys(dataWarga);
             if (keys.length === 0) {
-                matrixBody.innerHTML = `<tr><td colspan="14" class="text-center py-6 text-gray-500 italic">Belum ada data pembayaran iuran warga.</td></tr>`;
+                matrixBody.innerHTML = `<tr><td colspan="14" class="py-10 text-center text-slate-400"><i class="fas fa-inbox text-3xl mb-2 block opacity-60"></i><span class="italic">Belum ada data pembayaran iuran warga.</span></td></tr>`;
                 return;
             }
 
             keys.forEach(key => {
                 const w = dataWarga[key];
                 const tr = document.createElement('tr');
-                tr.className = "border-b border-gray-100 hover:bg-gray-50 transition duration-150";
+                tr.className = "tx-row border-b border-slate-100";
 
                 let colsHTML = `
-                    <td class="py-3 px-4 font-semibold text-gray-800 text-left whitespace-nowrap">${w.nama}</td>
-                    <td class="py-3 px-4 text-gray-500 font-medium text-center">${w.blok}</td>
+                    <td class="py-3 px-4 font-bold text-slate-800 text-left whitespace-nowrap">${w.nama}</td>
+                    <td class="py-3 px-4 text-slate-500 font-semibold text-center">${w.blok}</td>
                 `;
 
                 daftarBulan.forEach(b => {
                     if (w.bulanLunas[b]) {
-                        colsHTML += `<td class="py-3 px-2 text-center"><span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100 text-green-600 text-xs font-bold" title="Lunas ${b}"><i class="fas fa-check"></i></span></td>`;
+                        colsHTML += `<td class="py-3 px-2 text-center"><span class="bln bln-on mx-auto" title="Lunas ${b}"><i class="fas fa-check"></i></span></td>`;
                     } else {
-                        colsHTML += `<td class="py-3 px-2 text-center"><span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-50 text-red-400 text-xs" title="Belum Bayar"><i class="fas fa-times"></i></span></td>`;
+                        colsHTML += `<td class="py-3 px-2 text-center"><span class="bln bln-off mx-auto" title="Belum Bayar">·</span></td>`;
                     }
                 });
 
@@ -588,7 +719,7 @@
                     let bulan = normalizeBulan(row.Bulan);
                     if (!bulan && row.Tanggal && row.Tanggal.includes('/')) {
                         const parts = row.Tanggal.split('/');
-                        const daftarBulan = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Okt', 'Nov', 'Des'];
+                        const daftarBulan = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
                         const mIdx = parseInt(parts[1], 10) - 1;
                         if (mIdx >= 0 && mIdx < 12) bulan = daftarBulan[mIdx];
                     }
@@ -625,7 +756,7 @@
             });
 
             if (filteredData.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-gray-500 italic">Tidak ada transaksi yang cocok.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="5" class="py-10 text-center text-slate-400"><i class="fas fa-magnifying-glass text-3xl mb-2 block opacity-60"></i><span class="italic">Tidak ada transaksi yang cocok.</span></td></tr>`;
                 document.getElementById('pagination-container').style.display = 'none';
                 return;
             }
@@ -662,7 +793,7 @@
                     const autoExpand = searchTerm.length > 0;
 
                     const headerTr = document.createElement('tr');
-                    headerTr.className = "bg-blue-50/70 hover:bg-blue-100/80 cursor-pointer font-semibold border-b border-blue-200 transition duration-150";
+                    headerTr.className = "bg-indigo-50/80 hover:bg-indigo-100/80 cursor-pointer font-semibold border-b border-indigo-100 transition";
                     headerTr.onclick = () => toggleGroup(groupId);
 
                     let summaryText = `${items.length} Transaksi`;
@@ -675,19 +806,19 @@
                     }
 
                     headerTr.innerHTML = `
-                        <td class="py-3 px-4 text-left font-bold text-blue-900 whitespace-nowrap">
-                            <i class="far fa-calendar-alt mr-1.5 text-blue-600"></i>${tgl}
+                        <td class="py-3 px-4 text-left font-bold text-indigo-900 whitespace-nowrap">
+                            <i class="far fa-calendar-alt mr-1.5 text-indigo-500"></i>${tgl}
                         </td>
-                        <td class="py-3 px-4 text-left text-blue-900 text-xs sm:text-sm">
-                            <span class="bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full text-xs font-bold mr-2">${items.length} Transaksi</span>
-                            <span class="hidden sm:inline font-medium text-gray-700">${summaryText}</span>
+                        <td class="py-3 px-4 text-left text-indigo-900 text-xs sm:text-sm">
+                            <span class="pill pill-in mr-2"><i class="fas fa-layer-group"></i>${items.length} Transaksi</span>
+                            <span class="hidden sm:inline font-medium text-slate-600">${summaryText}</span>
                         </td>
                         <td class="py-3 px-4 text-center">
-                            <span class="bg-blue-100 text-blue-700 py-0.5 px-2 rounded-full text-xs font-bold uppercase">Gabungan</span>
+                            <span class="pill" style="background:#e0e7ff;color:#4338ca">Gabungan</span>
                         </td>
-                        <td class="py-3 px-4 text-right font-bold text-blue-900">Rp ${(groupIn - groupOut).toLocaleString('id-ID')}</td>
+                        <td class="py-3 px-4 text-right font-extrabold text-indigo-900 whitespace-nowrap">Rp ${(groupIn - groupOut).toLocaleString('id-ID')}</td>
                         <td class="py-3 px-4 text-center">
-                            <button class="text-blue-600 hover:text-blue-800 focus:outline-none p-1">
+                            <button class="text-indigo-500 hover:text-indigo-700 focus:outline-none p-1" aria-label="Buka rincian">
                                 <i id="icon-${groupId}" class="fas fa-chevron-down text-xs transition-transform duration-200 ${autoExpand ? 'rotate-180' : ''}"></i>
                             </button>
                         </td>
@@ -719,16 +850,14 @@
                         }
 
                         const childTr = document.createElement('tr');
-                        childTr.className = `${groupId} ${autoExpand ? '' : 'hidden'} border-b border-gray-100 bg-gray-50/60 hover:bg-gray-100 transition duration-150`;
+                        childTr.className = `${groupId} ${autoExpand ? '' : 'hidden'} tx-row border-b border-slate-100 bg-slate-50/60`;
                         childTr.innerHTML = `
-                            <td class="py-2.5 px-4 text-left text-xs text-gray-400 pl-8 whitespace-nowrap">└─ ${row.Tanggal || '-'}</td>
-                            <td class="py-2.5 px-4 text-left text-gray-700">${row.Keterangan || '-'} ${namaBlokHTML} ${duplicateNotice}</td>
+                            <td class="py-2.5 px-4 text-left text-xs text-slate-400 pl-8 whitespace-nowrap">└─ ${row.Tanggal || '-'}</td>
+                            <td class="py-2.5 px-4 text-left text-slate-700">${row.Keterangan || '-'} ${namaBlokHTML} ${duplicateNotice}</td>
                             <td class="py-2.5 px-4 text-center">
-                                <span class="${isPemasukan ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'} py-0.5 px-2 rounded-full text-xs font-semibold uppercase">
-                                    ${kategori}
-                                </span>
+                                <span class="pill ${isPemasukan ? 'pill-in' : 'pill-out'}">${kategori}</span>
                             </td>
-                            <td class="py-2.5 px-4 text-right font-medium text-gray-800">${fmtNominal(nominal, isPemasukan)}</td>
+                            <td class="py-2.5 px-4 text-right font-bold ${isPemasukan ? 'text-emerald-600' : 'text-rose-600'} whitespace-nowrap">${fmtNominal(nominal, isPemasukan)}</td>
                             <td class="py-2.5 px-4 text-center">${lampiranHTML}</td>
                         `;
                         tableBody.appendChild(childTr);
@@ -760,30 +889,30 @@
                     }
 
                     const tr = document.createElement('tr');
-                    tr.className = "bg-blue-50/70 hover:bg-blue-100/80 border-b border-blue-200 transition duration-150";
+                    tr.className = "tx-row border-b border-slate-100";
                     tr.innerHTML = `
                         <td class="py-3 px-4 text-left whitespace-nowrap">
                             <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-600 shadow-sm">
+                                <div class="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-500">
                                     <i class="far fa-calendar-alt text-sm"></i>
                                 </div>
-                                <span class="font-bold text-blue-900">${row.Tanggal || '-'}</span>
+                                <span class="font-bold text-slate-800">${row.Tanggal || '-'}</span>
                             </div>
                         </td>
                         <td class="py-3 px-4 text-left">
-                            <div class="flex items-center flex-wrap gap-1">
-                                <span class="font-semibold text-gray-800">${row.Keterangan || '-'}</span> 
+                            <div class="flex items-center flex-wrap gap-1.5">
+                                <span class="font-semibold text-slate-800">${row.Keterangan || '-'}</span>
                                 ${namaBlokHTML}
                                 ${duplicateNotice}
                             </div>
                         </td>
                         <td class="py-3 px-4 text-center">
-                            <span class="${isPemasukan ? 'bg-gradient-to-r from-emerald-100 to-green-100 text-green-800 border border-green-300' : 'bg-gradient-to-r from-rose-100 to-red-100 text-red-800 border border-red-300'} py-1 px-3 rounded-md text-[11px] font-extrabold uppercase tracking-widest shadow-sm">
-                                ${kategori}
+                            <span class="pill ${isPemasukan ? 'pill-in' : 'pill-out'}">
+                                <i class="fas ${isPemasukan ? 'fa-arrow-down' : 'fa-arrow-up'}"></i>${kategori}
                             </span>
                         </td>
                         <td class="py-3 px-4 text-right">
-                            <span class="inline-block font-bold text-gray-800 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm whitespace-nowrap">
+                            <span class="inline-block font-extrabold ${isPemasukan ? 'text-emerald-600' : 'text-rose-600'} whitespace-nowrap">
                                 ${fmtNominal(nominal, isPemasukan)}
                             </span>
                         </td>
