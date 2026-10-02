@@ -387,12 +387,16 @@
 
                 const kunciBulan = (idxBulan >= 0 && idxBulan <= 11) ? listBulan[idxBulan] : null;
 
+                // Nominal di sheet SELALU POSITIF. Tanda ditentukan kolom Kategori:
+                // Pemasukan -> +, Pengeluaran -> - (ditampilkan minus di web).
                 if (kategori === 'pemasukan') {
-                    totalPemasukan += nominal;
-                    if (kunciBulan) rekapBulan[kunciBulan].in += nominal;
+                    const masuk = Math.abs(nominal);
+                    totalPemasukan += masuk;
+                    if (kunciBulan) rekapBulan[kunciBulan].in += masuk;
                 } else if (kategori === 'pengeluaran') {
-                    totalPengeluaran += nominal;
-                    if (kunciBulan) rekapBulan[kunciBulan].out += nominal;
+                    const keluar = Math.abs(nominal);
+                    totalPengeluaran += keluar;
+                    if (kunciBulan) rekapBulan[kunciBulan].out += keluar;
                 }
             });
 
@@ -408,9 +412,16 @@
             filterAndRenderTable();
         }
 
+        // Format nominal: pemasukan "Rp X" (hijau/positif), pengeluaran "-Rp X".
+        function fmtNominal(nominal, isPemasukan) {
+            const n = Math.abs(parseInt(nominal) || 0);
+            const s = 'Rp ' + n.toLocaleString('id-ID');
+            return isPemasukan ? s : '-' + s;
+        }
+
         function renderCards(totalIn, totalOut, saldo) {
             document.getElementById('total-pemasukan').innerText = 'Rp ' + totalIn.toLocaleString('id-ID');
-            document.getElementById('total-pengeluaran').innerText = 'Rp ' + totalOut.toLocaleString('id-ID');
+            document.getElementById('total-pengeluaran').innerText = '-Rp ' + totalOut.toLocaleString('id-ID');
             document.getElementById('saldo-akhir').innerText = 'Rp ' + saldo.toLocaleString('id-ID');
         }
 
@@ -717,7 +728,7 @@
                                     ${kategori}
                                 </span>
                             </td>
-                            <td class="py-2.5 px-4 text-right font-medium text-gray-800">Rp ${nominal.toLocaleString('id-ID')}</td>
+                            <td class="py-2.5 px-4 text-right font-medium text-gray-800">${fmtNominal(nominal, isPemasukan)}</td>
                             <td class="py-2.5 px-4 text-center">${lampiranHTML}</td>
                         `;
                         tableBody.appendChild(childTr);
@@ -773,7 +784,7 @@
                         </td>
                         <td class="py-3 px-4 text-right">
                             <span class="inline-block font-bold text-gray-800 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm whitespace-nowrap">
-                                Rp ${nominal.toLocaleString('id-ID')}
+                                ${fmtNominal(nominal, isPemasukan)}
                             </span>
                         </td>
                         <td class="py-3 px-4 text-center">${lampiranHTML}</td>
